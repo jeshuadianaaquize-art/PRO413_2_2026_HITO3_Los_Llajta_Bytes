@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Prototipo navegable del Módulo 3 (inscripciones y calificaciones). Datos de ejemplo, sin conexión a MySQL. Abrir con doble clic en el navegador. -->
+<title>Prototipo Inscripciones y Calificaciones</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: barra superior como la app real + pestañas del módulo 3 + contenido en una columna de 1100px */
+:root {
+  --bg: #f4f6fa; --panel: #ffffff; --fg: #1f2933; --tenue: #5b6878; --borde: #d9dee5; --suave: #eef1f6;
+  --barra: #18233a; --barra-fg: #d3dbe8;
+  --primario: #2457c5; --primario-fg: #ffffff;
+  --docker: #0b7bc4; --docente: #7a4bc2; --ambos: #1f8a5b;
+  --ok-f: #e5f6ec; --ok-t: #17663f; --err-f: #fdecec; --err-t: #9b1c1c; --av-f: #fff6e0; --av-t: #7a5300;
+  --f-ui: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161f; --panel: #19202c; --fg: #e3e8ef; --tenue: #9aa6b6; --borde: #2c3646; --suave: #222b38;
+  --barra: #0b1019; --barra-fg: #b9c4d4; --primario: #5b8cf0; --primario-fg: #0b1019;
+  --docker: #3aa0e0; --docente: #a27ae6; --ambos: #3cb37f;
+  --ok-f: #143425; --ok-t: #8fe0b4; --err-f: #3a1717; --err-t: #f3a3a3; --av-f: #3a2e10; --av-t: #f0cf7a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161f; --panel: #19202c; --fg: #e3e8ef; --tenue: #9aa6b6; --borde: #2c3646; --suave: #222b38;
+  --barra: #0b1019; --barra-fg: #b9c4d4; --primario: #5b8cf0; --primario-fg: #0b1019;
+  --docker: #3aa0e0; --docente: #a27ae6; --ambos: #3cb37f;
+  --ok-f: #143425; --ok-t: #8fe0b4; --err-f: #3a1717; --err-t: #f3a3a3; --av-f: #3a2e10; --av-t: #f0cf7a; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 15px; line-height: 1.45; }
+code, .mono { font-family: var(--f-mono); font-size: .9em; }
+code { background: var(--suave); padding: 1px 5px; border-radius: 4px; }
+
+.barra { background: var(--barra); color: var(--barra-fg); padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.barra-int { max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.marca { color: #fff; font-weight: 700; font-size: 1.05em; }
+.pestanas { display: flex; flex-wrap: wrap; gap: 4px; }
+.pestanas button { background: none; border: 0; color: var(--barra-fg); font: inherit; padding: 6px 11px; border-radius: 6px; cursor: pointer; }
+.pestanas button:hover, .pestanas button[aria-selected="true"] { background: rgba(255,255,255,.14); color: #fff; }
+.pestanas button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+
+.contenedor { max-width: 1100px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+.aviso-proto { background: var(--av-f); color: var(--av-t); padding: 10px 14px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+
+.encabezado { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.encabezado h1 { margin: 0; font-size: 1.5em; text-wrap: balance; }
+.titulo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.srv { display: inline-block; font-size: .7em; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; color: #fff; white-space: nowrap; }
+.srv.docker { background: var(--docker); } .srv.docente { background: var(--docente); } .srv.ambos { background: var(--ambos); }
+.tenue { color: var(--tenue); } p { margin: 0; }
+
+.panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.panel h2 { margin: 0; font-size: 1.1em; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.alerta { padding: 11px 14px; border-radius: 8px; }
+.alerta.exito { background: var(--ok-f); color: var(--ok-t); } .alerta.error { background: var(--err-f); color: var(--err-t); }
+.alerta ul { margin: 6px 0 0; padding-left: 20px; }
+
+.tabla { overflow-x: auto; background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; min-width: 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+th { background: var(--suave); font-size: .76em; text-transform: uppercase; letter-spacing: .05em; color: var(--tenue); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vacio { text-align: center; color: var(--tenue); padding: 24px; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .82em; background: var(--suave); white-space: nowrap; }
+.chip.verde { background: var(--ok-f); color: var(--ok-t); } .chip.rojo { background: var(--err-f); color: var(--err-t); } .chip.ambar { background: var(--av-f); color: var(--av-t); }
+
+.btn { display: inline-block; border: 1px solid var(--borde); background: var(--panel); color: var(--fg); padding: 7px 13px; border-radius: 6px; font: inherit; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--suave); }
+.btn-primario { background: var(--primario); border-color: var(--primario); color: var(--primario-fg); }
+.btn-primario:hover { background: var(--primario); filter: brightness(1.08); }
+.btn-peligro { color: var(--err-t); }
+.btn-sm { padding: 3px 9px; font-size: .88em; }
+.acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.buscador { display: flex; flex-wrap: wrap; gap: 8px; }
+.buscador input { max-width: 300px; }
+input, select { font: inherit; padding: 7px 9px; border: 1px solid var(--borde); border-radius: 6px; background: var(--panel); color: var(--fg); width: 100%; }
+.buscador select, .buscador input { width: auto; flex: 1 1 200px; }
+.form { display: grid; gap: 14px; max-width: 760px; }
+.filas { display: grid; gap: 12px 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.campo { display: grid; gap: 4px; align-content: start; }
+.campo label { font-weight: 600; font-size: .92em; }
+.req { color: var(--err-t); }
+.ayuda { color: var(--tenue); font-size: .82em; }
+.msg-error { color: var(--err-t); font-size: .84em; }
+.invalido { border-color: var(--err-t); }
+
+.confirmar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--err-f); color: var(--err-t); padding: 8px 12px; border-radius: 6px; }
+.kpis { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 12px 14px; }
+.kpi .rotulo { color: var(--tenue); font-size: .82em; text-transform: uppercase; letter-spacing: .05em; }
+.kpi .valor { font-size: 1.5em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.reglas { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.ranking { margin: 0; padding-left: 22px; display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: no-preference) { .alerta { animation: entra .25s ease-out; } @keyframes entra { from { transform: translateY(-4px); } to { transform: none; } } }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-int">
+    <span class="marca">Gestión Escolar · Módulo 3</span>
+    <nav class="pestanas" role="tablist" aria-label="Secciones del módulo">
+      <button id="tab-inscripciones" role="tab" data-vista="inscripciones">Inscripciones</button>
+      <button id="tab-calificaciones" role="tab" data-vista="calificaciones">Calificaciones</button>
+      <button id="tab-boletin" role="tab" data-vista="boletin">Boletín y ranking</button>
+      <button id="tab-reglas" role="tab" data-vista="reglas">Reglas</button>
+    </nav>
+  </div>
+</header>
+
+<main class="contenedor">
+  <div class="aviso-proto">
+    <span><strong>Prototipo con datos de ejemplo.</strong> No se conecta a MySQL: los cambios viven en esta pestaña y se pierden al recargar. Las validaciones son las mismas del código en Laravel.</span>
+    <button class="btn btn-sm" id="btn-reiniciar" type="button">Restaurar datos de ejemplo</button>
+  </div>
+  <div id="mensajes"></div>
+  <div id="vista"></div>
+</main>
+
+<script>
+(() => {
+  // ---------- Datos de ejemplo (servidor docente) ----------
+  const GESTIONES = [
+    { id: 3, codigo: '2-2026', activa: true },
+    { id: 2, codigo: '1-2026', activa: false },
+    { id: 1, codigo: '2-2025', activa: false },
+  ];
+  const DOCENTE_POR_SIGLA = { 'PRO-413': 'M.Sc. Roberto Salazar Ibáñez', 'BDD-412': 'Ph.D. Patricia Velasco Arce',
+    'RED-421': 'M.Sc. Fernando Quisbert Nina', 'MAT-301': 'Lic. Gabriela Mendoza Laura', 'EST-302': 'Lic. Gabriela Mendoza Laura' };
+
+  // ---------- Datos de ejemplo (servidor Docker) ----------
+  const ESTUDIANTES = [
+    [1, 'EST-0001', 'Ana Lucía', 'Mamani Quispe', 'activo'], [2, 'EST-0002', 'Carlos', 'Rojas Vargas', 'activo'],
+    [3, 'EST-0003', 'María José', 'Fernández Choque', 'activo'], [4, 'EST-0004', 'Diego', 'Condori Apaza', 'activo'],
+    [5, 'EST-0005', 'Valeria', 'Gutiérrez Limachi', 'activo'], [6, 'EST-0006', 'Jorge Luis', 'Huanca Ticona', 'activo'],
+    [7, 'EST-0007', 'Camila', 'Torrez Mendoza', 'activo'], [8, 'EST-0008', 'Luis Fernando', 'Patzi Cruz', 'inactivo'],
+  ].map(([id, codigo, nombres, apellidos, estado]) => ({ id, codigo, nombre: nombres + ' ' + apellidos, estado }));
+  const ASIGNATURAS = [
+    [1, 'PRO-413', 'Programación III'], [2, 'BDD-412', 'Base de Datos II'], [3, 'RED-421', 'Redes de Computadoras I'],
+    [4, 'MAT-301', 'Matemática Discreta'], [5, 'SIS-431', 'Ingeniería de Software I'], [6, 'EST-302', 'Probabilidad y Estadística'],
+  ].map(([id, sigla, nombre]) => ({ id, sigla, nombre }));
+
+  const TIPOS = { primer_parcial: 'Primer parcial (20%)', segundo_parcial: 'Segundo parcial (20%)', practicas: 'Prácticas (20%)', examen_final: 'Examen final (40%)' };
+  const PESOS = { primer_parcial: 20, segundo_parcial: 20, practicas: 20, examen_final: 40 };
+  const ESTADOS = { inscrito: 'Inscrito', retirado: 'Retirado', aprobado: 'Aprobado', reprobado: 'Reprobado' };
+
+  function datosIniciales() {
+    const ins = [
+      [1, 1, 4, 1, '2025-08-05', 'aprobado'], [2, 1, 2, 2, '2026-02-10', 'aprobado'], [3, 1, 1, 3, '2026-08-04', 'inscrito'],
+      [4, 1, 3, 3, '2026-08-04', 'inscrito'], [5, 2, 1, 3, '2026-08-05', 'inscrito'], [6, 2, 2, 3, '2026-08-05', 'inscrito'],
+      [7, 3, 1, 3, '2026-08-06', 'inscrito'], [8, 4, 1, 3, '2026-08-06', 'retirado'], [9, 5, 1, 3, '2026-08-07', 'inscrito'],
+      [10, 5, 6, 3, '2026-08-07', 'inscrito'], [11, 6, 3, 3, '2026-08-08', 'inscrito'], [12, 7, 2, 3, '2026-08-08', 'inscrito'],
+      [13, 2, 4, 1, '2025-08-06', 'reprobado'], [14, 3, 2, 2, '2026-02-11', 'aprobado'],
+    ].map(([id, estudiante_id, asignatura_id, gestion_id, fecha, estado]) => ({ id, estudiante_id, asignatura_id, gestion_id, fecha, estado }));
+    let n = 0;
+    const cal = [
+      [1, 'primer_parcial', 78], [1, 'segundo_parcial', 82.5], [1, 'practicas', 90], [1, 'examen_final', 75],
+      [2, 'primer_parcial', 70], [2, 'segundo_parcial', 74], [2, 'practicas', 85], [2, 'examen_final', 68],
+      [3, 'primer_parcial', 85], [4, 'primer_parcial', 80], [5, 'primer_parcial', 62], [5, 'practicas', 71],
+      [6, 'primer_parcial', 55], [7, 'primer_parcial', 91], [7, 'practicas', 88], [9, 'primer_parcial', 67],
+      [10, 'primer_parcial', 74], [11, 'primer_parcial', 49], [12, 'primer_parcial', 83],
+      [13, 'primer_parcial', 40], [13, 'segundo_parcial', 45], [13, 'practicas', 60], [13, 'examen_final', 42],
+      [14, 'primer_parcial', 66], [14, 'segundo_parcial', 71], [14, 'practicas', 80], [14, 'examen_final', 70],
+    ].map(([inscripcion_id, tipo, nota]) => ({ id: ++n, inscripcion_id, tipo, nota, observacion: '' }));
+    return { ins, cal, sigIns: 15, sigCal: n + 1 };
+  }
+  let db = datosIniciales();
+
+  // ---------- Utilidades ----------
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const porId = (lista) => new Map(lista.map((x) => [x.id, x]));      // como keyBy('id')
+  const mEst = porId(ESTUDIANTES), mAsig = porId(ASIGNATURAS), mGes = porId(GESTIONES);
+  const gestionActiva = () => GESTIONES.find((g) => g.activa);
+  const hoy = () => new Date().toISOString().slice(0, 10);
+  const f2 = (x) => Number(x).toFixed(2);
+  const fecha = (iso) => iso.split('-').reverse().join('/');
+
+  // Equivalente a App\Support\NotaFinal
+  function notaFinal(inscripcionId) {
+    const notas = {};
+    db.cal.filter((c) => c.inscripcion_id === inscripcionId).forEach((c) => { notas[c.tipo] = c.nota; });
+    let acumulada = 0, porcentaje = 0;
+    for (const [t, v] of Object.entries(notas)) { acumulada += v * PESOS[t] / 100; porcentaje += PESOS[t]; }
+    acumulada = Math.round(acumulada * 100) / 100;
+    const situacion = porcentaje < 100 ? 'en curso' : (acumulada >= 51 ? 'aprobado' : 'reprobado');
+    return { notas, acumulada, porcentaje, situacion };
+  }
+
+  let mensaje = null;  // { tipo: 'exito'|'error', texto }
+  function avisar(tipo, texto) { mensaje = { tipo, texto }; }
+  function pintarMensaje() {
+    $('#mensajes').innerHTML = mensaje ? `<div class="alerta ${mensaje.tipo}" role="${mensaje.tipo === 'error' ? 'alert' : 'status'}">${mensaje.tipo === 'exito' ? '✔' : '✖'} ${esc(mensaje.texto)}</div>` : '';
+    mensaje = null;
+  }
+
+  const etiquetaSrv = { docker: 'Servidor MySQL Docker', docente: 'Servidor MySQL del docente', ambos: 'Datos de ambos servidores' };
+  const encabezado = (titulo, srv, extra = '') => `<div class="encabezado"><div class="titulo"><h1>${esc(titulo)}</h1><span class="srv ${srv}">${etiquetaSrv[srv]}</span></div><div class="acciones">${extra}</div></div>`;
+  const chipEstado = (e) => `<span class="chip ${e === 'aprobado' ? 'verde' : (e === 'reprobado' || e === 'retirado') ? 'rojo' : ''}">${ESTADOS[e]}</span>`;
+  const chipSituacion = (s) => `<span class="chip ${s === 'aprobado' ? 'verde' : s === 'en curso' ? 'ambar' : 'rojo'}">${s[0].toUpperCase() + s.slice(1)}</span>`;
+  const opciones = (pares, actual, vacio = '— Seleccione —') =>
+    (vacio === false ? '' : `<option value="">${vacio}</option>`) + pares.map(([v, t]) => `<option value="${v}" ${String(actual) === String(v) ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  const campoSel = (id, label, pares, actual, errores, ayuda = '', vacio) => `<div class="campo"><label for="${id}">${label} <span class="req">*</span></label>
+    <select id="${id}" class="${errores[id] ? 'invalido' : ''}">${opciones(pares, actual, vacio)}</select>
+    ${ayuda ? `<small class="ayuda">${ayuda}</small>` : ''}${errores[id] ? `<small class="msg-error">${esc(errores[id])}</small>` : ''}</div>`;
+  const campoIn = (id, label, tipo, valor, errores, attrs = '', req = true) => `<div class="campo"><label for="${id}">${label}${req ? ' <span class="req">*</span>' : ''}</label>
+    <input id="${id}" type="${tipo}" value="${esc(valor)}" ${attrs} class="${errores[id] ? 'invalido' : ''}">
+    ${errores[id] ? `<small class="msg-error">${esc(errores[id])}</small>` : ''}</div>`;
+  const resumenErrores = (errores) => Object.keys(errores).length ? `<div class="alerta error"><strong>Revise los datos del formulario:</strong><ul>${Object.values(errores).map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>` : '';
+
+  // ---------- Estado de navegación ----------
+  let estado = { vista: 'inscripciones', modo: 'lista', editId: null, borrarId: null, q: '', gestion: '', estudianteBoletin: 1, form: null, errores: {} };
+  function ir(cambios) { estado = { ...estado, errores: {}, form: null, borrarId: null, ...cambios }; render(); }
+
+  // ---------- Inscripciones ----------
+  function listaInscripciones() {
+    const q = estado.q.trim().toLowerCase();
+    const filas = db.ins
+      .filter((i) => !estado.gestion || i.gestion_id === Number(estado.gestion))
+      .filter((i) => { if (!q) return true; const e = mEst.get(i.estudiante_id), a = mAsig.get(i.asignatura_id);
+        return [e.nombre, e.codigo, a.sigla, a.nombre].some((t) => t.toLowerCase().includes(q)); })
+      .sort((a, b) => b.gestion_id - a.gestion_id || b.id - a.id);
+    const cuerpo = filas.map((i) => {
+      const e = mEst.get(i.estudiante_id), a = mAsig.get(i.asignatura_id), g = mGes.get(i.gestion_id), n = notaFinal(i.id);
+      const confirmar = estado.borrarId === i.id
+        ? `<div class="confirmar">¿Eliminar? También se borran sus notas. <button class="btn btn-sm btn-peligro" data-accion="borrar-ins-si" data-id="${i.id}">Sí, eliminar</button><button class="btn btn-sm" data-accion="borrar-no">No</button></div>`
+        : `<div class="acciones">${i.estado !== 'retirado' ? `<button class="btn btn-sm" data-accion="nota-para" data-id="${i.id}">+ Nota</button>` : ''}<button class="btn btn-sm" data-accion="editar-ins" data-id="${i.id}">Editar</button><button class="btn btn-sm btn-peligro" data-accion="borrar" data-id="${i.id}">Eliminar</button></div>`;
+      return `<tr><td><span class="srv docente">${g.codigo}</span></td>
+        <td><button class="btn btn-sm" style="border:0;padding:0;background:none;color:var(--primario)" data-accion="ver-boletin" data-id="${e.id}">${esc(e.nombre)}</button><br><small class="tenue mono">${e.codigo}</small></td>
+        <td><code>${a.sigla}</code> ${esc(a.nombre)}</td><td>${fecha(i.fecha)}</td>
+        <td class="num">${f2(n.acumulada)} <small class="tenue">(${n.porcentaje}%)</small></td><td>${chipEstado(i.estado)}</td><td>${confirmar}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="vacio">No se encontraron inscripciones.</td></tr>`;
+    return encabezado('Inscripciones', 'docker', `<button class="btn btn-primario" data-accion="nueva-ins">+ Nueva inscripción</button>`) +
+      `<p class="tenue">La columna <em>Gestión</em> viene del servidor del docente; el resto, del servidor Docker. Se unen en la aplicación con un mapa <code>id =&gt; gestión</code>.</p>
+      <div class="buscador"><input id="q" type="search" placeholder="Estudiante, código o sigla" value="${esc(estado.q)}" aria-label="Buscar">
+      <select id="filtro-gestion" aria-label="Filtrar por gestión">${opciones(GESTIONES.map((g) => [g.id, 'Gestión ' + g.codigo + (g.activa ? ' (activa)' : '')]), estado.gestion, 'Todas las gestiones')}</select></div>
+      <div class="tabla"><table><thead><tr><th>Gestión</th><th>Estudiante</th><th>Asignatura</th><th>Fecha</th><th class="num">Nota acumulada</th><th>Estado</th><th></th></tr></thead><tbody>${cuerpo}</tbody></table></div>
+      <p class="tenue">${filas.length} de ${db.ins.length} inscripciones</p>`;
+  }
+
+  function formInscripcion() {
+    const ed = estado.editId ? db.ins.find((i) => i.id === estado.editId) : null;
+    const f = estado.form || (ed ? { ...ed } : { estudiante_id: '', asignatura_id: '', gestion_id: gestionActiva().id, fecha: hoy(), estado: 'inscrito' });
+    const er = estado.errores;
+    return encabezado(ed ? 'Editar inscripción' : 'Nueva inscripción', 'docker') + resumenErrores(er) +
+      `<form class="panel form" id="form-ins" novalidate><div class="filas">
+        ${campoSel('estudiante_id', 'Estudiante', ESTUDIANTES.map((e) => [e.id, `${e.codigo} · ${e.nombre}${e.estado === 'inactivo' ? ' (inactivo)' : ''}`]), f.estudiante_id, er)}
+        ${campoSel('asignatura_id', 'Asignatura', ASIGNATURAS.map((a) => [a.id, `${a.sigla} · ${a.nombre}`]), f.asignatura_id, er)}
+        ${campoSel('gestion_id', 'Gestión académica', GESTIONES.map((g) => [g.id, 'Gestión ' + g.codigo + (g.activa ? ' (activa)' : '')]), f.gestion_id, er, 'Viene del servidor MySQL del docente. Solo se aceptan nuevas inscripciones en la gestión activa.')}
+        ${campoIn('fecha', 'Fecha de inscripción', 'date', f.fecha, er)}
+        ${campoSel('estado_ins', 'Estado', Object.entries(ESTADOS), f.estado, er, '', false)}
+      </div><div class="acciones"><button class="btn btn-primario" type="submit">Guardar</button><button class="btn" type="button" data-accion="cancelar">Cancelar</button></div></form>`;
+  }
+
+  // InscripcionRequest + InscripcionService::antesDeGuardar
+  function guardarInscripcion() {
+    const f = { estudiante_id: Number($('#estudiante_id').value) || '', asignatura_id: Number($('#asignatura_id').value) || '',
+      gestion_id: Number($('#gestion_id').value) || '', fecha: $('#fecha').value, estado: $('#estado_ins').value };
+    const er = {};
+    if (!f.estudiante_id) er.estudiante_id = 'El campo estudiante es obligatorio.';
+    if (!f.asignatura_id) er.asignatura_id = 'El campo asignatura es obligatorio.';
+    if (!f.gestion_id) er.gestion_id = 'El campo gestión académica es obligatorio.';
+    if (!f.fecha) er.fecha = 'El campo fecha de inscripción es obligatorio.';
+    else if (f.fecha > hoy()) er.fecha = 'La fecha de inscripción debe ser anterior o igual a hoy.';
+    if (Object.keys(er).length) { estado.form = f; estado.errores = er; return render(); }
+
+    const nueva = !estado.editId, g = mGes.get(f.gestion_id), e = mEst.get(f.estudiante_id);
+    let regla = null;
+    if (nueva && !g.activa) regla = `Solo se permiten nuevas inscripciones en la gestión activa (${g.codigo} no está activa).`;
+    else if (nueva && e.estado !== 'activo') regla = `${e.nombre} está inactivo y no puede inscribirse.`;
+    else if (db.ins.some((i) => i.id !== estado.editId && i.estudiante_id === f.estudiante_id && i.asignatura_id === f.asignatura_id && i.gestion_id === f.gestion_id))
+      regla = `${e.nombre} ya está inscrito(a) en esa asignatura durante la gestión ${g.codigo}.`;
+    if (regla) { avisar('error', regla); estado.form = f; estado.errores = {}; return render(); }
+
+    if (nueva) { db.ins.push({ id: db.sigIns++, ...f }); avisar('exito', 'Inscripción registrada correctamente.'); }
+    else { Object.assign(db.ins.find((i) => i.id === estado.editId), f); avisar('exito', 'Inscripción actualizada correctamente.'); }
+    ir({ modo: 'lista', editId: null });
+  }
+
+  // ---------- Calificaciones ----------
+  function listaCalificaciones() {
+    const q = estado.q.trim().toLowerCase();
+    const filas = db.cal.map((c) => ({ c, i: db.ins.find((x) => x.id === c.inscripcion_id) }))
+      .filter(({ i }) => { if (!q) return true; const e = mEst.get(i.estudiante_id), a = mAsig.get(i.asignatura_id);
+        return [e.nombre, e.codigo, a.sigla].some((t) => t.toLowerCase().includes(q)); })
+      .sort((a, b) => b.i.id - a.i.id || Object.keys(TIPOS).indexOf(a.c.tipo) - Object.keys(TIPOS).indexOf(b.c.tipo));
+    const cuerpo = filas.map(({ c, i }) => {
+      const e = mEst.get(i.estudiante_id), a = mAsig.get(i.asignatura_id);
+      const acc = estado.borrarId === c.id
+        ? `<div class="confirmar">¿Eliminar esta nota? <button class="btn btn-sm btn-peligro" data-accion="borrar-cal-si" data-id="${c.id}">Sí, eliminar</button><button class="btn btn-sm" data-accion="borrar-no">No</button></div>`
+        : `<div class="acciones"><button class="btn btn-sm" data-accion="editar-cal" data-id="${c.id}">Editar</button><button class="btn btn-sm btn-peligro" data-accion="borrar" data-id="${c.id}">Eliminar</button></div>`;
+      return `<tr><td>${esc(e.nombre)}</td><td><code>${a.sigla}</code> <span class="tenue">${mGes.get(i.gestion_id).codigo}</span></td><td>${TIPOS[c.tipo]}</td>
+        <td class="num"><span class="chip ${c.nota >= 51 ? 'verde' : 'rojo'}">${f2(c.nota)}</span></td><td class="tenue">${esc(c.observacion)}</td><td>${acc}</td></tr>`;
+    }).join('') || `<tr><td colspan="6" class="vacio">No se encontraron calificaciones.</td></tr>`;
+    return encabezado('Calificaciones', 'docker', `<button class="btn btn-primario" data-accion="nueva-cal">+ Nueva calificación</button>`) +
+      `<p class="tenue">Ponderación: primer parcial 20 %, segundo parcial 20 %, prácticas 20 %, examen final 40 %. Nota mínima de aprobación: 51.</p>
+      <div class="buscador"><input id="q" type="search" placeholder="Estudiante, código o sigla" value="${esc(estado.q)}" aria-label="Buscar"></div>
+      <div class="tabla"><table><thead><tr><th>Estudiante</th><th>Asignatura</th><th>Evaluación</th><th class="num">Nota</th><th>Observación</th><th></th></tr></thead><tbody>${cuerpo}</tbody></table></div>`;
+  }
+
+  function formCalificacion() {
+    const ed = estado.editId ? db.cal.find((c) => c.id === estado.editId) : null;
+    const f = estado.form || (ed ? { ...ed } : { inscripcion_id: estado.preIns || '', tipo: '', nota: '', observacion: '' });
+    const er = estado.errores;
+    const vigentes = db.ins.filter((i) => i.estado !== 'retirado').sort((a, b) => b.gestion_id - a.gestion_id)
+      .map((i) => [i.id, `${mGes.get(i.gestion_id).codigo} · ${mAsig.get(i.asignatura_id).sigla} · ${mEst.get(i.estudiante_id).nombre}`]);
+    return encabezado(ed ? 'Editar calificación' : 'Nueva calificación', 'docker') + resumenErrores(er) +
+      `<form class="panel form" id="form-cal" novalidate>
+        ${campoSel('inscripcion_id', 'Inscripción (gestión · asignatura · estudiante)', vigentes, f.inscripcion_id, er, 'No se muestran inscripciones retiradas.')}
+        <div class="filas">${campoSel('tipo', 'Tipo de evaluación', Object.entries(TIPOS), f.tipo, er)}
+        ${campoIn('nota', 'Nota (0 a 100)', 'number', f.nota, er, 'min="0" max="100" step="0.01"')}</div>
+        ${campoIn('observacion', 'Observación', 'text', f.observacion, er, 'maxlength="255"', false)}
+        <div class="acciones"><button class="btn btn-primario" type="submit">Guardar</button><button class="btn" type="button" data-accion="cancelar">Cancelar</button></div></form>`;
+  }
+
+  // CalificacionRequest + CalificacionService::antesDeGuardar
+  function guardarCalificacion() {
+    const crudo = $('#nota').value.trim();
+    const f = { inscripcion_id: Number($('#inscripcion_id').value) || '', tipo: $('#tipo').value, nota: crudo, observacion: $('#observacion').value };
+    const er = {};
+    if (!f.inscripcion_id) er.inscripcion_id = 'El campo inscripción es obligatorio.';
+    if (!f.tipo) er.tipo = 'El campo tipo es obligatorio.';
+    if (crudo === '') er.nota = 'El campo nota es obligatorio.';
+    else if (isNaN(Number(crudo))) er.nota = 'El campo nota debe ser un número.';
+    else if (Number(crudo) < 0 || Number(crudo) > 100) er.nota = 'El campo nota debe estar entre 0 y 100.';
+    else if (!/^-?\d+(\.\d{1,2})?$/.test(crudo)) er.nota = 'El campo nota debe tener 0-2 decimales.';
+    if (f.observacion.length > 255) er.observacion = 'El campo observación no debe tener más de 255 caracteres.';
+    if (Object.keys(er).length) { estado.form = f; estado.errores = er; return render(); }
+
+    const repetida = db.cal.some((c) => c.id !== estado.editId && c.inscripcion_id === f.inscripcion_id && c.tipo === f.tipo);
+    if (repetida) { avisar('error', `Esa inscripción ya tiene registrada la nota de: ${TIPOS[f.tipo]}. Edítela en lugar de crear otra.`); estado.form = f; estado.errores = {}; return render(); }
+
+    f.nota = Math.round(Number(crudo) * 100) / 100;
+    if (!estado.editId) { db.cal.push({ id: db.sigCal++, ...f }); avisar('exito', 'Calificación registrada correctamente.'); }
+    else { Object.assign(db.cal.find((c) => c.id === estado.editId), f); avisar('exito', 'Calificación actualizada correctamente.'); }
+    ir({ modo: 'lista', editId: null, preIns: null });
+  }
+
+  // ---------- Boletín y ranking (BoletinService) ----------
+  function boletin() {
+    const e = mEst.get(Number(estado.estudianteBoletin));
+    const propias = db.ins.filter((i) => i.estudiante_id === e.id);
+    const grupos = new Map();                                     // groupBy('gestion_id')
+    propias.forEach((i) => { if (!grupos.has(i.gestion_id)) grupos.set(i.gestion_id, []); grupos.get(i.gestion_id).push(i); });
+    const bloques = [...grupos.entries()].sort((a, b) => b[0] - a[0]).map(([gid, lista]) => {
+      const materias = lista.map((i) => ({ i, a: mAsig.get(i.asignatura_id), n: notaFinal(i.id) })).sort((x, y) => x.a.sigla.localeCompare(y.a.sigla));
+      const completas = materias.filter((m) => m.n.porcentaje === 100);
+      const prom = completas.length ? completas.reduce((s, m) => s + m.n.acumulada, 0) / completas.length : null;
+      return { g: mGes.get(gid), materias, prom };
+    });
+    const proms = bloques.map((b) => b.prom).filter((p) => p !== null);
+    const general = proms.length ? proms.reduce((s, p) => s + p, 0) / proms.length : null;
+
+    const tablas = bloques.map((b) => `<section class="panel"><h2>Gestión ${b.g.codigo}${b.prom !== null ? ` <span class="chip">Promedio: ${f2(b.prom)}</span>` : ''}</h2>
+      <div class="tabla"><table><thead><tr><th>Asignatura</th><th>Docente</th>${Object.values(TIPOS).map((t) => `<th class="num">${t}</th>`).join('')}<th class="num">Acumulada</th><th>Situación</th></tr></thead><tbody>
+      ${b.materias.map(({ i, a, n }) => `<tr><td><strong>${a.sigla}</strong> <span class="tenue">${esc(a.nombre)}</span></td><td>${DOCENTE_POR_SIGLA[a.sigla] || 'Sin asignar'}</td>
+        ${Object.keys(TIPOS).map((t) => `<td class="num">${n.notas[t] !== undefined ? f2(n.notas[t]) : '—'}</td>`).join('')}
+        <td class="num"><strong>${f2(n.acumulada)}</strong> <small class="tenue">(${n.porcentaje}%)</small></td><td>${chipSituacion(i.estado === 'retirado' ? 'retirado' : n.situacion)}</td></tr>`).join('')}
+      </tbody></table></div></section>`).join('') || `<div class="alerta" style="background:var(--av-f);color:var(--av-t)">El estudiante todavía no tiene inscripciones.</div>`;
+
+    // Ranking de la gestión activa con una "cola de prioridad" (aquí: ordenar por prioridad)
+    const ga = gestionActiva();
+    const porEst = new Map();
+    db.ins.filter((i) => i.gestion_id === ga.id && i.estado !== 'retirado' && db.cal.some((c) => c.inscripcion_id === i.id))
+      .forEach((i) => { if (!porEst.has(i.estudiante_id)) porEst.set(i.estudiante_id, []); porEst.get(i.estudiante_id).push(notaFinal(i.id).acumulada); });
+    const ranking = [...porEst.entries()].map(([id, ns]) => ({ nombre: mEst.get(id).nombre, prom: ns.reduce((s, x) => s + x, 0) / ns.length, materias: ns.length }))
+      .sort((a, b) => b.prom - a.prom).slice(0, 5);
+
+    return encabezado('Boletín de ' + e.nombre, 'ambos') +
+      `<div class="buscador"><label class="tenue" for="sel-est" style="align-self:center">Estudiante:</label><select id="sel-est">${opciones(ESTUDIANTES.map((x) => [x.id, x.codigo + ' · ' + x.nombre]), e.id, false)}</select></div>
+      <div class="kpis"><div class="kpi"><div class="rotulo">Código</div><div class="valor mono">${e.codigo}</div></div>
+      <div class="kpi"><div class="rotulo">Inscripciones</div><div class="valor">${propias.length}</div></div>
+      <div class="kpi"><div class="rotulo">Promedio general</div><div class="valor">${general !== null ? f2(general) : '—'}</div></div>
+      <div class="kpi"><div class="rotulo">Estado</div><div class="valor" style="font-size:1.1em">${e.estado === 'activo' ? '<span class="chip verde">Activo</span>' : '<span class="chip rojo">Inactivo</span>'}</div></div></div>
+      <p class="tenue">Notas, asignaturas e inscripciones: servidor Docker. Código de gestión y docente de cada curso: servidor del docente. Se agrupan por gestión con <code>groupBy</code> y se unen con <code>keyBy</code>.</p>
+      ${tablas}
+      <section class="panel"><h2>Mejores promedios · gestión ${ga.codigo} <span class="srv ambos">SplPriorityQueue</span></h2>
+      <ol class="ranking">${ranking.map((r) => `<li>${esc(r.nombre)} — <strong>${f2(r.prom)}</strong> <span class="tenue">(${r.materias} materia${r.materias > 1 ? 's' : ''})</span></li>`).join('')}</ol>
+      <p class="tenue">Promedio de la nota acumulada de cada estudiante en la gestión activa, sin contar retiros.</p></section>`;
+  }
+
+  function reglas() {
+    return encabezado('Reglas que valida el módulo', 'ambos') +
+      `<section class="panel"><h2>Inscripciones <span class="srv docker">InscripcionService</span></h2><ol class="reglas">
+        <li>La gestión debe existir en el <strong>servidor del docente</strong>.</li>
+        <li>Solo se crean inscripciones nuevas en la <strong>gestión activa</strong> (2-2026). Pruébalo eligiendo 1-2026.</li>
+        <li>El estudiante debe estar <strong>activo</strong>. Pruébalo con Luis Fernando Patzi Cruz.</li>
+        <li>No se repite estudiante + asignatura + gestión. Pruébalo con Ana Lucía en PRO-413, gestión 2-2026.</li>
+        <li>La fecha no puede ser posterior a hoy.</li></ol></section>
+      <section class="panel"><h2>Calificaciones <span class="srv docker">CalificacionService</span></h2><ol class="reglas">
+        <li>Nota entre 0 y 100, con hasta 2 decimales. Pruébalo con 120 o con 75.555.</li>
+        <li>Una sola nota por tipo de evaluación en cada inscripción. Pruébalo con el primer parcial de Ana Lucía en PRO-413.</li>
+        <li>Las inscripciones retiradas no aparecen para registrar notas (Diego Condori en PRO-413).</li>
+        <li>Al eliminar una inscripción se eliminan sus notas (<code>ON DELETE CASCADE</code>).</li></ol></section>
+      <section class="panel"><h2>Nota final <span class="srv docker">NotaFinal</span></h2>
+        <p>Acumulada = 20 % primer parcial + 20 % segundo parcial + 20 % prácticas + 40 % examen final. Con el 100 % evaluado: aprobado si es 51 o más; si no, reprobado. Mientras falten notas: en curso.</p></section>`;
+  }
+
+  // ---------- Render y eventos ----------
+  function render() {
+    document.querySelectorAll('.pestanas button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.vista === estado.vista)));
+    const v = estado.vista, m = estado.modo;
+    $('#vista').innerHTML = `<div style="display:grid;gap:16px">${
+      v === 'inscripciones' ? (m === 'form' ? formInscripcion() : listaInscripciones())
+      : v === 'calificaciones' ? (m === 'form' ? formCalificacion() : listaCalificaciones())
+      : v === 'boletin' ? boletin() : reglas()}</div>`;
+    pintarMensaje();
+  }
+
+  document.addEventListener('click', (ev) => {
+    const tab = ev.target.closest('.pestanas button');
+    if (tab) { try { history.replaceState(null, '', '#' + tab.dataset.vista); } catch (e) {} return ir({ vista: tab.dataset.vista, modo: 'lista', editId: null, q: '' }); }
+    const b = ev.target.closest('[data-accion]'); if (!b) return;
+    const id = Number(b.dataset.id);
+    switch (b.dataset.accion) {
+      case 'nueva-ins': return ir({ modo: 'form', editId: null });
+      case 'editar-ins': return ir({ modo: 'form', editId: id });
+      case 'nueva-cal': return ir({ modo: 'form', editId: null, preIns: null });
+      case 'editar-cal': return ir({ modo: 'form', editId: id });
+      case 'nota-para': return ir({ vista: 'calificaciones', modo: 'form', editId: null, preIns: id });
+      case 'ver-boletin': return ir({ vista: 'boletin', estudianteBoletin: id });
+      case 'cancelar': return ir({ modo: 'lista', editId: null, preIns: null });
+      case 'borrar': estado.borrarId = id; return render();
+      case 'borrar-no': estado.borrarId = null; return render();
+      case 'borrar-ins-si': db.ins = db.ins.filter((i) => i.id !== id); db.cal = db.cal.filter((c) => c.inscripcion_id !== id);
+        avisar('exito', 'Inscripción eliminada (junto con sus calificaciones).'); return ir({});
+      case 'borrar-cal-si': db.cal = db.cal.filter((c) => c.id !== id); avisar('exito', 'Calificación eliminada.'); return ir({});
+    }
+  });
+  document.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (ev.target.id === 'form-ins') guardarInscripcion();
+    if (ev.target.id === 'form-cal') guardarCalificacion();
+  });
+  document.addEventListener('input', (ev) => {
+    if (ev.target.id === 'q') { estado.q = ev.target.value; const pos = ev.target.selectionStart; render(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
+  });
+  document.addEventListener('change', (ev) => {
+    if (ev.target.id === 'filtro-gestion') { estado.gestion = ev.target.value; render(); }
+    if (ev.target.id === 'sel-est') { estado.estudianteBoletin = Number(ev.target.value); render(); }
+  });
+  $('#btn-reiniciar').addEventListener('click', () => { db = datosIniciales(); avisar('exito', 'Datos de ejemplo restaurados.'); ir({ modo: 'lista', editId: null, q: '', gestion: '' }); });
+
+  const inicial = (location.hash || '').slice(1);
+  if (['inscripciones', 'calificaciones', 'boletin', 'reglas'].includes(inicial)) estado.vista = inicial;
+  render();
+})();
+</script>
+</body>
+</html>
