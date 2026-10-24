@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mysql_docker'),
 
     /*
     |--------------------------------------------------------------------------
@@ -31,6 +31,60 @@ return [
     */
 
     'connections' => [
+
+        /*
+        |----------------------------------------------------------------------
+        | Sistema de Gestión Escolar: DOS servidores MySQL independientes
+        |----------------------------------------------------------------------
+        |
+        | mysql_docker  -> MySQL en un contenedor Docker creado por el grupo
+        |                  (estudiantes, asignaturas, inscripciones, calificaciones).
+        | mysql_docente -> MySQL de la red local del docente
+        |                  (docentes, gestiones académicas, aulas, asignaciones).
+        |
+        | Ninguna credencial está escrita aquí: todo se lee de variables de
+        | entorno (archivo .env, excluido del repositorio por .gitignore).
+        | PDO::ATTR_TIMEOUT evita que la app se cuelgue si un servidor no responde.
+        |
+        */
+
+        'mysql_docker' => [
+            'driver' => 'mysql',
+            'host' => env('DOCKER_DB_HOST', 'db'),
+            'port' => env('DOCKER_DB_PORT', '3306'),
+            'database' => env('DOCKER_DB_DATABASE', 'escolar_docker'),
+            'username' => env('DOCKER_DB_USERNAME', ''),
+            'password' => env('DOCKER_DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => 'InnoDB',
+            'options' => extension_loaded('pdo_mysql') ? [
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5),
+            ] : [],
+        ],
+
+        'mysql_docente' => [
+            'driver' => 'mysql',
+            'host' => env('DOCENTE_DB_HOST', '127.0.0.1'),
+            'port' => env('DOCENTE_DB_PORT', '3306'),
+            'database' => env('DOCENTE_DB_DATABASE', ''),
+            'username' => env('DOCENTE_DB_USERNAME', ''),
+            'password' => env('DOCENTE_DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => 'InnoDB',
+            'options' => extension_loaded('pdo_mysql') ? [
+                PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5),
+            ] : [],
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',
